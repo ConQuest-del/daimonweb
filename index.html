@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DMON — Daimon Minor Token on Base</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --base:   #0052FF; --bright: #2D7DFF; --gold:  #F5A623;
+      --amber:  #FF6B00; --red:    #FF3366; --green: #00D897;
+      --bg:     #040608; --bg2:    #080C12; --bg3:   #0D1420;
+      --border: rgba(0,82,255,.2); --borderG: rgba(0,82,255,.5);
+      --text:   #E8F0FF; --muted:  #5A7099; --dim:   #2A3D5A;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;overflow-x:hidden;cursor:none}
+
+    /* ── Cursor ── */
+    #c {width:12px;height:12px;background:var(--base);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:transform .1s,background .2s;mix-blend-mode:screen}
+    #cr{width:36px;height:36px;border:1px solid rgba(0,82,255,.5);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:all .15s}
+
+    /* ── BG ── */
+    .gbg{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(0,82,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,82,255,.04) 1px,transparent 1px);background-size:48px 48px;pointer-events:none}
+    .blob{position:fixed;border-radius:50%;filter:blur(120px);opacity:.1;pointer-events:none;z-index:0}
+    .blob.b1{width:600px;height:600px;background:var(--base);top:-200px;right:-100px;animation:drift 12s ease-in-out infinite}
+    .blob.b2{width:400px;height:400px;background:var(--amber);bottom:100px;left:-100px;animation:drift 16s ease-in-out infinite reverse}
+    @keyframes drift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,40px) scale(1.1)}}
+
+    .wrap{max-width:1100px;margin:0 auto;padding:0 24px;position:relative;z-index:2}
+
+    /* ── NAV ── */
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 0;border-bottom:1px solid transparent;transition:all .4s}
+    nav.s{border-color:var(--border);backdrop-filter:blur(24px);background:rgba(4,6,8,.85)}
+    .ni{display:flex;align-items:center;justify-content:space-between}
+    .nl{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:var(--text);text-decoration:none}
+    .nl span{color:var(--base)}
+    .nm{display:flex;gap:28px;list-style:none}
+    .nm a{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s;position:relative;padding-bottom:2px}
+    .nm a::after{content:'';position:absolute;bottom:0;left:0;width:0;height:1px;background:var(--base);transition:width .3s}
+    .nm a:hover{color:var(--text)}
+    .nm a:hover::after,.nm a.active::after{width:100%}
+    .nm a.active{color:var(--text)}
+    .nc{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;padding:10px 20px;border:1px solid var(--base);color:var(--base);text-decoration:none;border-radius:4px;transition:all .2s}
+    .nc:hover{background:var(--base);color:#fff;box-shadow:0 0 20px rgba(0,82,255,.4)}
+
+    /* ── HERO ── */
+    .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:120px 0 80px}
+    .htag{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--base);border:1px solid var(--border);padding:6px 14px;border-radius:100px;margin-bottom:32px;display:inline-flex;align-items:center;gap:8px;animation:fu .8s ease both}
+    .htag::before{content:'';width:6px;height:6px;background:var(--base);border-radius:50%;animation:pulse 2s ease infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+    .hero h1{font-size:clamp(52px,9vw,110px);font-weight:800;line-height:.95;letter-spacing:-.04em;margin-bottom:8px;animation:fu .8s ease .1s both}
+    .hero h1 .b{color:var(--base)}.hero h1 .g{color:var(--gold)}
+    .hsub{font-family:'Space Mono',monospace;font-size:clamp(12px,2vw,15px);color:var(--muted);margin-top:24px;margin-bottom:48px;max-width:480px;line-height:1.7;animation:fu .8s ease .2s both}
+    .hact{display:flex;gap:16px;flex-wrap:wrap;animation:fu .8s ease .3s both}
+    .btn1{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;padding:15px 30px;background:var(--base);color:#fff;text-decoration:none;border-radius:4px;letter-spacing:.05em;transition:all .2s;display:inline-flex;align-items:center;gap:8px}
+    .btn1:hover{background:var(--bright);box-shadow:0 0 32px rgba(0,82,255,.5);transform:translateY(-2px)}
+    .btn2{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;padding:15px 30px;border:1px solid var(--border);color:var(--muted);text-decoration:none;border-radius:4px;letter-spacing:.05em;transition:all .2s}
+    .btn2:hover{border-color:var(--muted);color:var(--text)}
+    @keyframes fu{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+
+    /* ── TICKER ── */
+    .tw{margin-top:72px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:14px 0;overflow:hidden;animation:fu .8s ease .4s both}
+    .tk{display:flex;gap:56px;animation:sc 24s linear infinite;width:max-content}
+    @keyframes sc{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+    .ti{display:flex;align-items:center;gap:10px;font-family:'Space Mono',monospace;font-size:11px;white-space:nowrap}
+    .tl{color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+    .tv{color:var(--text);font-weight:700}.tv.gr{color:var(--green)}
+    .ts{color:var(--dim)}
+
+    /* ── SECTION COMMONS ── */
+    .sec{padding:96px 0}
+    .sec-alt{padding:96px 0;background:var(--bg2)}
+    .sh{text-align:center;margin-bottom:60px}
+    .stag{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--base);margin-bottom:14px}
+    .stit{font-size:clamp(30px,5vw,54px);font-weight:800;letter-spacing:-.03em;line-height:1.05}
+    .sdesc{font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);margin-top:14px;line-height:1.7;max-width:480px;margin-inline:auto}
+    .r{opacity:0;transform:translateY(28px);transition:all .65s cubic-bezier(.16,1,.3,1)}
+    .r.v{opacity:1;transform:none}
+    .divider{width:1px;height:48px;background:var(--border);margin:0 auto}
+
+    /* ── TOKENOMICS ── */
+    .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .tc{background:var(--bg2);padding:36px;transition:background .3s}
+    .tc:hover{background:var(--bg3)}
+    .tc-l{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+    .tc-v{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1}
+    .tc-v.bl{color:var(--base)}.tc-v.gl{color:var(--gold)}.tc-v.rd{color:var(--red)}.tc-v.gn{color:var(--green)}
+    .tc-d{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+    .tc.wide{grid-column:1/-1}
+
+    .distbar{margin-top:40px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:28px}
+    .dbl{display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:14px}
+    .dbt{height:6px;background:var(--bg);border-radius:100px;overflow:hidden}
+    .dbf{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--base),var(--bright));width:100%}
+    .dbs{display:flex;margin-top:12px;gap:2px;border-radius:4px;overflow:hidden;height:4px}
+    .ds1{flex:40;background:var(--base)}.ds2{flex:30;background:var(--bright)}.ds3{flex:20;background:var(--gold)}.ds4{flex:10;background:var(--amber)}
+    .dbleg{display:flex;gap:20px;flex-wrap:wrap;margin-top:14px;font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)}
+    .dbleg span{display:flex;align-items:center;gap:6px}
+    .dot{width:8px;height:8px;border-radius:2px}
+
+    .flow{display:flex;align-items:center;gap:0;margin-top:40px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .flow-step{flex:1;padding:28px 20px;text-align:center;position:relative}
+    .flow-step:not(:last-child)::after{content:'→';position:absolute;right:-12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:18px;z-index:1;font-family:'Space Mono',monospace}
+    .flow-ico{font-size:28px;margin-bottom:10px;display:block}
+    .flow-pct{font-size:22px;font-weight:800;letter-spacing:-.03em;margin-bottom:4px}
+    .flow-lbl{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+    /* ── HOW TO BUY ── */
+    .htb-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .htb-step{border:1px solid var(--border);background:var(--bg2);border-radius:12px;padding:32px;position:relative;overflow:hidden;transition:all .3s}
+    .htb-step::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--base),transparent);transform:scaleX(0);transform-origin:left;transition:transform .4s}
+    .htb-step:hover{border-color:var(--borderG);transform:translateY(-3px)}
+    .htb-step:hover::before{transform:scaleX(1)}
+    .htb-num{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--base);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+    .htb-num::before{content:attr(data-n);width:24px;height:24px;border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--base)}
+    .htb-title{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:8px}
+    .htb-desc{font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+    .htb-link{display:inline-flex;align-items:center;gap:6px;font-family:'Space Mono',monospace;font-size:11px;color:var(--base);text-decoration:none;letter-spacing:.05em;transition:gap .2s}
+    .htb-link:hover{gap:10px}
+    .htb-highlight{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px 16px;font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6}
+    .htb-highlight strong{color:var(--text);display:block;margin-bottom:4px}
+
+    .chain-badge{display:inline-flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 14px;font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:24px}
+    .chain-badge::before{content:'';width:8px;height:8px;background:var(--base);border-radius:50%;animation:pulse 2s ease infinite}
+
+    /* ── ROADMAP ── */
+    .roadmap{position:relative;padding-left:48px}
+    .roadmap::before{content:'';position:absolute;left:16px;top:0;bottom:0;width:1px;background:linear-gradient(to bottom,var(--base),transparent)}
+    .rm-item{position:relative;margin-bottom:48px;opacity:0;transform:translateX(-16px);transition:all .5s}
+    .rm-item.v{opacity:1;transform:none}
+    .rm-dot{position:absolute;left:-38px;top:4px;width:12px;height:12px;border-radius:50%;border:2px solid var(--border);background:var(--bg);transition:all .3s}
+    .rm-item.done .rm-dot{background:var(--green);border-color:var(--green);box-shadow:0 0 10px rgba(0,216,151,.4)}
+    .rm-item.active .rm-dot{background:var(--base);border-color:var(--base);box-shadow:0 0 10px rgba(0,82,255,.5);animation:pulse 2s ease infinite}
+    .rm-item.soon .rm-dot{background:var(--bg3);border-color:var(--muted)}
+    .rm-period{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+    .rm-title{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px}
+    .rm-items{list-style:none;display:flex;flex-direction:column;gap:6px}
+    .rm-items li{font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+    .rm-items li::before{content:'—';color:var(--dim);flex-shrink:0;margin-top:1px}
+    .rm-item.done .rm-items li::before{content:'✓';color:var(--green)}
+    .rm-item.active .rm-items li::before{content:'◉';color:var(--base)}
+    .rm-badge{display:inline-flex;align-items:center;gap:6px;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:100px;margin-bottom:10px}
+    .rm-badge.done{background:rgba(0,216,151,.1);color:var(--green);border:1px solid rgba(0,216,151,.2)}
+    .rm-badge.active{background:rgba(0,82,255,.1);color:var(--base);border:1px solid rgba(0,82,255,.2)}
+    .rm-badge.soon{background:rgba(90,112,153,.08);color:var(--muted);border:1px solid var(--border)}
+
+    /* ── ECOSYSTEM ── */
+    .eco-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .eco-card{border:1px solid var(--border);background:var(--bg2);border-radius:12px;padding:32px;transition:all .3s;position:relative;overflow:hidden;cursor:default}
+    .eco-card::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 0% 0%,rgba(0,82,255,.05),transparent 70%);opacity:0;transition:opacity .4s}
+    .eco-card:hover{border-color:var(--borderG);transform:translateY(-4px)}
+    .eco-card:hover::after{opacity:1}
+    .eco-card.hero-card{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center;background:var(--bg3)}
+    .eco-symbol{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--base);margin-bottom:10px;letter-spacing:.05em}
+    .eco-name{font-size:22px;font-weight:800;letter-spacing:-.03em;margin-bottom:6px}
+    .eco-role{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+    .eco-desc{font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);line-height:1.6}
+    .eco-status{display:inline-flex;align-items:center;gap:6px;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:100px;margin-top:14px}
+    .eco-status.live{background:rgba(0,216,151,.1);color:var(--green);border:1px solid rgba(0,216,151,.2)}
+    .eco-status.build{background:rgba(245,166,35,.08);color:var(--gold);border:1px solid rgba(245,166,35,.2)}
+    .eco-status.plan{background:rgba(90,112,153,.08);color:var(--muted);border:1px solid var(--border)}
+    .eco-status::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+    .eco-flow{display:flex;flex-direction:column;gap:10px}
+    .eco-flow-row{display:flex;align-items:center;gap:10px;font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)}
+    .eco-flow-row .tag{background:rgba(0,82,255,.1);border:1px solid var(--border);border-radius:4px;padding:4px 10px;color:var(--text);font-weight:700;min-width:64px;text-align:center}
+    .eco-flow-row .arr{color:var(--dim)}
+    .eco-flow-row .lbl{flex:1}
+
+    /* ── GITHUB CTA ── */
+    .ghc{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:56px 48px;text-align:center;position:relative;overflow:hidden}
+    .ghc::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(0,82,255,.1),transparent 70%)}
+    .ghc h3{font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-.03em;margin-bottom:12px;position:relative}
+    .ghc p{font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);margin-bottom:32px;line-height:1.7;position:relative}
+    .ghb{display:inline-flex;align-items:center;gap:10px;font-family:'Space Mono',monospace;font-size:13px;font-weight:700;padding:16px 32px;background:#fff;color:#040608;border-radius:4px;text-decoration:none;transition:all .2s;letter-spacing:.05em;position:relative}
+    .ghb:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(255,255,255,.15)}
+    .ghb svg{width:18px;height:18px}
+
+    /* ── FOOTER ── */
+    footer{padding:40px 0;border-top:1px solid var(--border)}
+    .fi{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+    .fl{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--text);text-decoration:none}
+    .fl span{color:var(--base)}
+    .fls{display:flex;gap:24px;list-style:none}
+    .fls a{font-family:'Space Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);text-decoration:none;transition:color .2s}
+    .fls a:hover{color:var(--text)}
+    .fc{font-family:'Space Mono',monospace;font-size:11px;color:var(--dim)}
+
+    /* ── MOBILE ── */
+    @media(max-width:768px){
+      .tgrid,.htb-grid,.eco-grid{grid-template-columns:1fr}
+      .eco-card.hero-card{grid-template-columns:1fr}
+      .flow{flex-direction:column}
+      .flow-step:not(:last-child)::after{content:'↓';right:auto;left:50%;transform:translateX(-50%);top:auto;bottom:-16px}
+      .nm,.nc{display:none}
+      .hero h1{font-size:52px}
+      .roadmap{padding-left:32px}
+      .ghc{padding:32px 24px}
+      .fi{flex-direction:column;text-align:center}
+    }
+  </style>
+</head>
+<body>
+
+<div id="c"></div><div id="cr"></div>
+<div class="gbg"></div>
+<div class="blob b1"></div><div class="blob b2"></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="wrap ni">
+    <a class="nl" href="#hero"><span>D</span>MON</a>
+    <ul class="nm">
+      <li><a href="#hero">Home</a></li>
+      <li><a href="#tokenomics">Tokenomics</a></li>
+      <li><a href="#howtobuy">How to Buy</a></li>
+      <li><a href="#roadmap">Roadmap</a></li>
+      <li><a href="#ecosystem">Ecosystem</a></li>
+    </ul>
+    <a class="nc" href="https://basescan.org" target="_blank">View on Base ↗</a>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════
+     HERO
+════════════════════════════════════ -->
+<section class="hero" id="hero">
+  <div class="wrap">
+    <div class="htag">🔵 Live on Base Network · Chain ID: 8453</div>
+    <h1>
+      <span class="b">DMON</span><br>
+      <span class="g">Daimon</span><br>
+      Minor
+    </h1>
+    <p class="hsub">
+      Gas fee &amp; micro-transaction token<br>
+      of the DAIMON ecosystem.<br>
+      Deflationary. Fast. Built on Base.
+    </p>
+    <div class="hact">
+      <a class="btn1" href="#howtobuy">How to Buy →</a>
+      <a class="btn2" href="https://github.com" target="_blank">GitHub ↗</a>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="wrap">
+  <div class="tw">
+    <div class="tk">
+      <div class="ti"><span class="tl">Symbol</span><span class="tv">$DMON</span></div><span class="ts">·</span>
+      <div class="ti"><span class="tl">Max Supply</span><span class="tv">100,000,000,000</span></div><span class="ts">·</span>
+      <div class="ti"><span class="tl">Burn/TX</span><span class="tv" style="color:var(--red)">1.0%</span></div><span class="ts">·</span>
+      <div class="ti"><span class="tl">Treasury/TX</span><span class="tv">0.5%</span></div><span class="ts">·</span>
+      <div class="ti"><span class="tl">Network</span><span class="tv gr">Base ✓</span></div><span class="ts">·</span>
+      <div class="ti"><span class="tl">Gas/TX</span><span class="tv gr">~$0.001</span></div><span class="ts">·</span>
+      <div class="ti"><span class="tl">Standard</span><span class="tv">ERC-20 + Permit</span></div><span class="ts">·</span>
+      <div class="ti"><span class="tl">Chain ID</span><span class="tv">8453</span></div><span class="ts">·</span>
+      <!-- repeat -->
+      <div class="ti"><span class="tl">Symbol</span><span class="tv">$DMON</span></div><span class="ts">·</span>
+      <div class="ti"><span class="tl">Max Supply</span><span class="tv">100,000,000,000</span></div><span class="ts">·</span>
+      <div class="ti"><span class="tl">Burn/TX</span><span class="tv" style="color:var(--red)">1.0%</span></div><span class="ts">·</span>
+      <div class="ti"><span class="tl">Treasury/TX</span><span class="tv">0.5%</span></div><span class="ts">·</span>
+      <div class="ti"><span class="tl">Network</span><span class="tv gr">Base ✓</span></div><span class="ts">·</span>
+      <div class="ti"><span class="tl">Gas/TX</span><span class="tv gr">~$0.001</span></div><span class="ts">·</span>
+      <div class="ti"><span class="tl">Standard</span><span class="tv">ERC-20 + Permit</span></div><span class="ts">·</span>
+      <div class="ti"><span class="tl">Chain ID</span><span class="tv">8453</span></div><span class="ts">·</span>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     TOKENOMICS
+════════════════════════════════════ -->
+<section class="sec" id="tokenomics">
+  <div class="wrap">
+    <div class="sh r">
+      <div class="stag">Tokenomics</div>
+      <h2 class="stit">Built to Deflate.<br>Designed to Scale.</h2>
+      <p class="sdesc">Every transaction burns supply and funds the ecosystem — creating natural deflationary pressure forever.</p>
+    </div>
+
+    <div class="tgrid r">
+      <div class="tc"><div class="tc-l">Max Supply</div><div class="tc-v bl">100B</div><div class="tc-d">Fixed forever. 100,000,000,000 DMON. No additional minting possible.</div></div>
+      <div class="tc"><div class="tc-l">Burn per Transaction</div><div class="tc-v rd">1.0%</div><div class="tc-d">Auto-burned on every transfer. Removed from supply permanently.</div></div>
+      <div class="tc"><div class="tc-l">Treasury per Transaction</div><div class="tc-v gl">0.5%</div><div class="tc-d">Funds ecosystem development, liquidity, and parent DAIMON value.</div></div>
+      <div class="tc"><div class="tc-l">Recipient Receives</div><div class="tc-v gn">98.5%</div><div class="tc-d">Near-full amount arrives. Base gas makes fees negligible (~$0.001).</div></div>
+      <div class="tc wide"><div class="tc-l">Network</div><div class="tc-v bl">Base · Chain ID 8453</div><div class="tc-d">Coinbase's Ethereum L2 — ~$0.001 gas, 2s finality, full EVM compatible. Powered by Optimism.</div></div>
+    </div>
+
+    <!-- Burn flow -->
+    <div class="flow r" style="transition-delay:.1s">
+      <div class="flow-step">
+        <span class="flow-ico">👤</span>
+        <div class="flow-pct" style="color:var(--text)">1000</div>
+        <div class="flow-lbl">DMON Sent</div>
+      </div>
+      <div class="flow-step">
+        <span class="flow-ico">🔥</span>
+        <div class="flow-pct" style="color:var(--red)">10</div>
+        <div class="flow-lbl">Burned Forever</div>
+      </div>
+      <div class="flow-step">
+        <span class="flow-ico">🏛️</span>
+        <div class="flow-pct" style="color:var(--gold)">5</div>
+        <div class="flow-lbl">Treasury</div>
+      </div>
+      <div class="flow-step">
+        <span class="flow-ico">✅</span>
+        <div class="flow-pct" style="color:var(--green)">985</div>
+        <div class="flow-lbl">Received</div>
+      </div>
+    </div>
+
+    <!-- Distribution -->
+    <div class="distbar r" style="transition-delay:.2s">
+      <div class="dbl"><span>Token Distribution</span><span style="color:var(--text)">100,000,000,000 DMON</span></div>
+      <div class="dbt"><div class="dbf"></div></div>
+      <div class="dbs"><div class="ds1"></div><div class="ds2"></div><div class="ds3"></div><div class="ds4"></div></div>
+      <div class="dbleg">
+        <span><span class="dot" style="background:var(--base)"></span>40% Ecosystem &amp; Public</span>
+        <span><span class="dot" style="background:var(--bright)"></span>30% Liquidity Pool</span>
+        <span><span class="dot" style="background:var(--gold)"></span>20% Team</span>
+        <span><span class="dot" style="background:var(--amber)"></span>10% Reserve</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════
+     HOW TO BUY
+════════════════════════════════════ -->
+<section class="sec-alt" id="howtobuy">
+  <div class="wrap">
+    <div class="sh r">
+      <div class="stag">How to Buy</div>
+      <h2 class="stit">Get $DMON in<br>4 Simple Steps</h2>
+      <p class="sdesc">$DMON lives on Base Network. You'll need a Web3 wallet and ETH bridged to Base.</p>
+    </div>
+
+    <div class="r" style="text-align:center;margin-bottom:28px">
+      <div class="chain-badge">Base Network (Chain ID: 8453) · Gas ~$0.001</div>
+    </div>
+
+    <div class="htb-grid">
+      <div class="htb-step r">
+        <div class="htb-num" data-n="01">Step One</div>
+        <div class="htb-title">Get a Web3 Wallet</div>
+        <div class="htb-desc">Download a wallet that supports Base Network. Coinbase Wallet or MetaMask are the easiest options.</div>
+        <div class="htb-highlight">
+          <strong>Recommended Wallets</strong>
+          Coinbase Wallet · MetaMask · Rainbow · Trust Wallet
+        </div>
+        <a class="htb-link" href="https://wallet.coinbase.com" target="_blank">Get Coinbase Wallet →</a>
+      </div>
+
+      <div class="htb-step r" style="transition-delay:.1s">
+        <div class="htb-num" data-n="02">Step Two</div>
+        <div class="htb-title">Add Base Network</div>
+        <div class="htb-desc">Add Base to your wallet. Coinbase Wallet adds it automatically. For MetaMask, add manually.</div>
+        <div class="htb-highlight">
+          <strong>Base Network Details</strong>
+          Network Name: Base<br>
+          RPC URL: mainnet.base.org<br>
+          Chain ID: 8453 · Symbol: ETH
+        </div>
+        <a class="htb-link" href="https://docs.base.org/using-base" target="_blank">Setup Guide →</a>
+      </div>
+
+      <div class="htb-step r" style="transition-delay:.15s">
+        <div class="htb-num" data-n="03">Step Three</div>
+        <div class="htb-title">Bridge ETH to Base</div>
+        <div class="htb-desc">You need ETH on Base to pay gas and buy $DMON. Bridge from Ethereum mainnet or buy directly on Base via Coinbase.</div>
+        <div class="htb-highlight">
+          <strong>Bridge Options</strong>
+          Official Base Bridge · Coinbase Exchange<br>
+          Stargate · Across Protocol
+        </div>
+        <a class="htb-link" href="https://bridge.base.org" target="_blank">Official Bridge →</a>
+      </div>
+
+      <div class="htb-step r" style="transition-delay:.2s">
+        <div class="htb-num" data-n="04">Step Four</div>
+        <div class="htb-title">Swap ETH for $DMON</div>
+        <div class="htb-desc">Go to Aerodrome Finance (Base's leading DEX). Paste the DMON contract address, set slippage to 2%, and swap.</div>
+        <div class="htb-highlight">
+          <strong>Where to Buy</strong>
+          Aerodrome Finance · Uniswap v3 Base<br>
+          Set slippage: 1.5% – 2%
+        </div>
+        <a class="htb-link" href="https://aerodrome.finance" target="_blank">Aerodrome DEX →</a>
+      </div>
+    </div>
+
+    <!-- Warning box -->
+    <div class="r" style="transition-delay:.25s;margin-top:24px;background:rgba(255,51,102,.05);border:1px solid rgba(255,51,102,.2);border-radius:8px;padding:20px 24px;font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);line-height:1.7">
+      <strong style="color:var(--red);display:block;margin-bottom:4px">⚠️ Security Reminder</strong>
+      Always verify the contract address on Basescan before buying. Never share your seed phrase. DMON only exists on Base (Chain ID: 8453). Beware of fake tokens on other chains.
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════
+     ROADMAP
+════════════════════════════════════ -->
+<section class="sec" id="roadmap">
+  <div class="wrap">
+    <div class="sh r">
+      <div class="stag">Roadmap</div>
+      <h2 class="stit">Building the<br>Daimon Ecosystem</h2>
+      <p class="sdesc">A phased rollout from token launch to a full multi-token DeFi ecosystem on Base.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px">
+      <div class="roadmap r">
+
+        <div class="rm-item done v">
+          <div class="rm-dot"></div>
+          <div class="rm-badge done">✓ Completed</div>
+          <div class="rm-period">Phase 1 · Q1 2025</div>
+          <div class="rm-title">Foundation</div>
+          <ul class="rm-items">
+            <li>DMON ERC-20 smart contract developed</li>
+            <li>Tokenomics finalized — 100B supply, 1% burn</li>
+            <li>Hardhat test suite &amp; CI/CD pipeline</li>
+            <li>Contract deployed to Base Sepolia testnet</li>
+            <li>Basescan verification completed</li>
+          </ul>
+        </div>
+
+        <div class="rm-item done v">
+          <div class="rm-dot"></div>
+          <div class="rm-badge done">✓ Completed</div>
+          <div class="rm-period">Phase 2 · Q2 2025</div>
+          <div class="rm-title">Public Launch</div>
+          <ul class="rm-items">
+            <li>DMON deployed to Base Mainnet</li>
+            <li>Liquidity pool created on Aerodrome</li>
+            <li>Trading enabled — anti-bot lifted</li>
+            <li>Official website &amp; social channels live</li>
+            <li>Community building begins</li>
+          </ul>
+        </div>
+
+        <div class="rm-item active">
+          <div class="rm-dot"></div>
+          <div class="rm-badge active">◉ In Progress</div>
+          <div class="rm-period">Phase 3 · Q3 2025</div>
+          <div class="rm-title">Ecosystem Growth</div>
+          <ul class="rm-items">
+            <li>microPay() integration with dApps</li>
+            <li>DMON staking module launch</li>
+            <li>CEX listing applications submitted</li>
+            <li>DSOUL NFT token development begins</li>
+            <li>Daimon Bridge architecture design</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="roadmap r" style="transition-delay:.15s">
+
+        <div class="rm-item soon">
+          <div class="rm-dot"></div>
+          <div class="rm-badge soon">Coming Soon</div>
+          <div class="rm-period">Phase 4 · Q4 2025</div>
+          <div class="rm-title">DeFi Expansion</div>
+          <ul class="rm-items">
+            <li>DMON DEX aggregator on Base</li>
+            <li>DFIRE staking &amp; yield token launch</li>
+            <li>Governance voting via DAIMON parent</li>
+            <li>First CEX listing confirmed</li>
+            <li>Daimon Bridge Base ↔ Ethereum live</li>
+          </ul>
+        </div>
+
+        <div class="rm-item soon">
+          <div class="rm-dot"></div>
+          <div class="rm-badge soon">Coming Soon</div>
+          <div class="rm-period">Phase 5 · Q1 2026</div>
+          <div class="rm-title">GameFi &amp; Cross-Chain</div>
+          <ul class="rm-items">
+            <li>Daimon GameFi beta with DMON economy</li>
+            <li>DECHO cross-chain bridge token launch</li>
+            <li>DVEIL synthetic assets module</li>
+            <li>Multi-chain DMON on BNB Chain &amp; Polygon</li>
+            <li>Developer SDK released</li>
+          </ul>
+        </div>
+
+        <div class="rm-item soon">
+          <div class="rm-dot"></div>
+          <div class="rm-badge soon">Vision</div>
+          <div class="rm-period">Phase 6 · 2026+</div>
+          <div class="rm-title">Full Ecosystem</div>
+          <ul class="rm-items">
+            <li>DAIMON parent token governance live</li>
+            <li>All 5 sub-tokens active in ecosystem</li>
+            <li>Daimon Pay — merchant micro-payment SDK</li>
+            <li>50+ dApp integrations using DMON</li>
+            <li>Daimon DAO fully operational</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════
+     ECOSYSTEM
+════════════════════════════════════ -->
+<section class="sec-alt" id="ecosystem">
+  <div class="wrap">
+    <div class="sh r">
+      <div class="stag">Ecosystem</div>
+      <h2 class="stit">The Daimon<br>Token Family</h2>
+      <p class="sdesc">Five specialized tokens. One unified ecosystem. Each token has a distinct role in powering DAIMON.</p>
+    </div>
+
+    <!-- DAIMON parent hero card -->
+    <div class="eco-card hero-card r">
+      <div>
+        <div class="eco-symbol">$DAIMON · Parent Token</div>
+        <div class="eco-name">DAIMON</div>
+        <div class="eco-role">Governance &amp; Value Anchor</div>
+        <div class="eco-desc">The parent token of the entire Daimon ecosystem. DAIMON holders govern protocol decisions, vote on proposals, and capture value from all sub-token activity. Every DMON transaction that flows to the treasury ultimately strengthens DAIMON.</div>
+        <span class="eco-status build">◉ Building</span>
+      </div>
+      <div class="eco-flow">
+        <div class="eco-flow-row"><span class="tag">DAIMON</span><span class="arr">↔</span><span class="lbl">Governs all sub-tokens</span></div>
+        <div class="eco-flow-row"><span class="tag">DMON</span><span class="arr">→</span><span class="lbl">Gas &amp; micro-payments</span></div>
+        <div class="eco-flow-row"><span class="tag">DSOUL</span><span class="arr">→</span><span class="lbl">NFT &amp; creator economy</span></div>
+        <div class="eco-flow-row"><span class="tag">DFIRE</span><span class="arr">→</span><span class="lbl">Staking &amp; yield</span></div>
+        <div class="eco-flow-row"><span class="tag">DECHO</span><span class="arr">→</span><span class="lbl">Cross-chain bridge</span></div>
+        <div class="eco-flow-row"><span class="tag">DVEIL</span><span class="arr">→</span><span class="lbl">Synthetic assets</span></div>
+      </div>
+    </div>
+
+    <div class="eco-grid" style="margin-top:16px">
+
+      <div class="eco-card r">
+        <div class="eco-symbol">$DMON</div>
+        <div class="eco-name">Daimon Minor</div>
+        <div class="eco-role">Gas &amp; Micro-Transaction</div>
+        <div class="eco-desc">The fuel of the ecosystem. Every dApp operation, tip, game purchase, and API call is powered by DMON. 1% burns every transaction — deflationary forever on Base.</div>
+        <span class="eco-status live">◉ Live on Base</span>
+      </div>
+
+      <div class="eco-card r" style="transition-delay:.08s">
+        <div class="eco-symbol">$DSOUL</div>
+        <div class="eco-name">Daimon Soul</div>
+        <div class="eco-role">NFT &amp; Creator Economy</div>
+        <div class="eco-desc">Power the Daimon NFT marketplace. DSOUL is used for minting fees, creator royalties, and exclusive NFT drops. Every Daimon NFT has a soul.</div>
+        <span class="eco-status build">◉ Building</span>
+      </div>
+
+      <div class="eco-card r" style="transition-delay:.16s">
+        <div class="eco-symbol">$DFIRE</div>
+        <div class="eco-name">Daimon Fire</div>
+        <div class="eco-role">Staking &amp; Yield Farming</div>
+        <div class="eco-desc">Stake DMON and earn DFIRE as yield rewards. DFIRE can be used to boost burn rate, access premium features, and amplify staking positions in the Daimon protocol.</div>
+        <span class="eco-status build">◉ Building</span>
+      </div>
+
+      <div class="eco-card r" style="transition-delay:.08s">
+        <div class="eco-symbol">$DECHO</div>
+        <div class="eco-name">Daimon Echo</div>
+        <div class="eco-role">Cross-Chain Bridge</div>
+        <div class="eco-desc">DECHO wraps DMON for cross-chain movement — Base to Ethereum, BNB Chain, Polygon, and beyond. The bridge token that lets DMON echo across every chain.</div>
+        <span class="eco-status plan">◎ Planned</span>
+      </div>
+
+      <div class="eco-card r" style="transition-delay:.16s">
+        <div class="eco-symbol">$DVEIL</div>
+        <div class="eco-name">Daimon Veil</div>
+        <div class="eco-role">Synthetic &amp; Wrapped Assets</div>
+        <div class="eco-desc">DVEIL enables synthetic asset exposure within the Daimon ecosystem. Hold wrapped BTC, ETH, or real-world assets — all settled in DMON on Base.</div>
+        <span class="eco-status plan">◎ Planned</span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════
+     GITHUB CTA
+════════════════════════════════════ -->
+<section class="sec" id="github">
+  <div class="wrap">
+    <div class="ghc r">
+      <h3>Open Source &amp; Ready to Deploy</h3>
+      <p>Full smart contract · Unit tests · CI/CD pipeline<br>Deploy scripts · Auto-verify on Basescan · MIT License</p>
+      <a class="ghb" href="https://github.com" target="_blank">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="fi">
+      <a class="fl" href="#hero"><span>D</span>MON · Daimon Minor</a>
+      <ul class="fls">
+        <li><a href="#tokenomics">Tokenomics</a></li>
+        <li><a href="#howtobuy">How to Buy</a></li>
+        <li><a href="#roadmap">Roadmap</a></li>
+        <li><a href="#ecosystem">Ecosystem</a></li>
+        <li><a href="https://basescan.org" target="_blank">Basescan ↗</a></li>
+      </ul>
+      <div class="fc">© 2025 Daimon Labs · Base Chain</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Cursor
+  const c=document.getElementById('c'),cr=document.getElementById('cr');
+  let mx=0,my=0,rx=0,ry=0;
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;c.style.left=mx+'px';c.style.top=my+'px'});
+  (function a(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;cr.style.left=rx+'px';cr.style.top=ry+'px';requestAnimationFrame(a)})();
+  document.querySelectorAll('a,button').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{c.style.transform='translate(-50%,-50%) scale(2)';cr.style.transform='translate(-50%,-50%) scale(1.5)';cr.style.borderColor='rgba(0,82,255,.8)'});
+    el.addEventListener('mouseleave',()=>{c.style.transform='translate(-50%,-50%) scale(1)';cr.style.transform='translate(-50%,-50%) scale(1)';cr.style.borderColor='rgba(0,82,255,.5)'});
+  });
+
+  // Nav scroll + active link
+  const navEl=document.getElementById('nav');
+  const sections=document.querySelectorAll('section[id],div[id="hero"]');
+  const navLinks=document.querySelectorAll('.nm a');
+
+  window.addEventListener('scroll',()=>{
+    navEl.classList.toggle('s',window.scrollY>40);
+    let cur='';
+    sections.forEach(s=>{if(window.scrollY>=s.offsetTop-120)cur=s.id});
+    navLinks.forEach(a=>{a.classList.toggle('active',a.getAttribute('href')==='#'+cur)});
+  });
+
+  // Intersection Observer
+  const obs=new IntersectionObserver(e=>e.forEach(x=>x.isIntersecting&&x.target.classList.add('v')),{threshold:.1});
+  document.querySelectorAll('.r,.rm-item').forEach(el=>obs.observe(el));
+
+  // Stagger roadmap items
+  document.querySelectorAll('.rm-item').forEach((el,i)=>el.style.transitionDelay=(i*.1)+'s');
+</script>
+</body>
+</html>
